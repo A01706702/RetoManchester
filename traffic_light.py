@@ -20,7 +20,7 @@ class TrafficLight():
 
 
         ############################### SUBSCRIBERS #####################################  
-        image_sub = rospy.Subscriber("camera/image_raw", Image, self.image_cb) 
+        image_sub = rospy.Subscriber("/video_source/raw", Image, self.image_cb) 
         self.pub_traffic_light = rospy.Publisher('traffic_light', String, queue_size=1)  
 
 
@@ -32,19 +32,22 @@ class TrafficLight():
                 #I resized the image so it can be easier to work with 
                 cv_image = self.cv_image
                 cv_image = cv2.resize(cv_image,(300,300))
+                cv_image = cv_image[35:200, :]
 
                 #Once we read the image we need to change the color space to HSV 
                 hsv = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV) 
 
      
 		        #HSV Limits
-                min_green = np.array([49,39,130]) 
+                min_green = np.array([49,50,150])  #49,39,130
                 max_green = np.array([98,255,255])
 
-                min_red1 = np.array([0,50,50]) 
-                max_red1 = np.array([10,255,255])
-                min_red2 = np.array([155,25,50])
-                max_red2 = np.array([180,255,255])
+
+                min_red1 = np.array([0,88,179])  #0,88,179
+                max_red1 = np.array([33,255,255])
+                min_red2 = np.array([155,70,90])  
+                max_red2 = np.array([180,255,255]) 
+
 
 
      
@@ -52,6 +55,7 @@ class TrafficLight():
                 #Here we will create a mask that contains only the colors defined in your limits 
                 #This mask has only one dimension, so its black and white 
                 mask_g = cv2.inRange(hsv, min_green, max_green) 
+
                 mask_r1 = cv2.inRange(hsv, min_red1, max_red1)
                 mask_r2 = cv2.inRange(hsv, min_red2, max_red2)
                 mask_r = mask_r1 + mask_r2
@@ -67,33 +71,47 @@ class TrafficLight():
 
                 #MORPHOLOGICAL OPERATIONS
                 kernel = np.ones((3,3), np.uint8)
-                erosion_green = cv2.erode(th_green, kernel, iterations=1)
-                img_green = cv2.dilate(erosion_green, kernel, iterations=2)
 
-                erosion_red = cv2.erode(th_red, kernel, iterations=1)
-                img_red = cv2.dilate(erosion_red, kernel, iterations=2)
+                #erosion_green = cv2.erode(th_green, kernel, iterations=2)
+                img_green = cv2.dilate(th_green, kernel, iterations=4)
+
+                img_red = cv2.dilate(th_red, kernel, iterations=2)
+
+                
 
 
-                #BLOB DETECTOR
-                params = cv2.SimpleBlobDetector_Params()
-                params.filterByArea = True
-                params.minArea= 100
-                params.maxArea= 2000
-                params.filterByCircularity = True
-                params.minCircularity = 0.3
-                params.maxCircularity = 1
-                params.blobColor = 255
+                #BLOB DETECTOR RED
+                paramsred = cv2.SimpleBlobDetector_Params()
+                paramsred.filterByArea = True
+                paramsred.minArea= 150
+                paramsred.maxArea= 450
+                paramsred.filterByCircularity = True
+                paramsred.minCircularity = 0.4
+                paramsred.maxCircularity = 1
+                paramsred.blobColor = 255
 
-                detector = cv2.SimpleBlobDetector_create(params)
-                keypoints_green = detector.detect(img_green)
-                keypoints_red = detector.detect(img_red)
+                #BLOB DETECTOR GREEN
+                paramsgreen = cv2.SimpleBlobDetector_Params()
+                paramsgreen.filterByArea = True
+                paramsgreen.minArea= 250
+                paramsgreen.maxArea= 450
+                paramsgreen.filterByCircularity = True
+                paramsgreen.minCircularity = 0.7
+                paramsgreen.maxCircularity = 1
+                paramsgreen.blobColor = 255
+
+                detectorred = cv2.SimpleBlobDetector_create(paramsred)
+                detectorgreen = cv2.SimpleBlobDetector_create(paramsgreen)
+
+                keypoints_green = detectorgreen.detect(img_green)
+                keypoints_red = detectorred.detect(img_red)
 
 
                 if(keypoints_red):
                     print("found_red")
                     self.pub_traffic_light.publish("Red") #publish the robot's speed 
                 if(keypoints_green):
-                    #print("found green")
+                    print("found green")
                     self.pub_traffic_light.publish("Green") #publish the robot's speed 
                 
                 if((not keypoints_green) and (not keypoints_red)):
@@ -101,10 +119,12 @@ class TrafficLight():
                     self.pub_traffic_light.publish("None") #publish the robot's speed
 
 
-                cv2.imshow("Image", mask_r)
-                cv2.waitKey(3) 
-
-
+                #cv2.imshow("Mask Red",img_red)
+                #cv2.waitKey(1) 
+                #cv2.imshow("Image", cv_image)
+                #cv2.waitKey(1)
+                #cv2.imshow("Mask Green", img_green)
+                #cv2.waitKey(1)
 
 
             r.sleep()  
@@ -113,7 +133,7 @@ class TrafficLight():
  
 
     def image_cb(self, ros_image):  
-        ## This function receives a ROS image and transforms it into opencv format   
+        ## This function receives a ROS image and transforms it into opencv format 
         try: 
             #print("received ROS image, I will convert it to opencv") 
             # We select bgr8 because its the OpenCV encoding by default 
