@@ -93,10 +93,10 @@ class TrafficLight():
                 #BLOB DETECTOR GREEN
                 paramsgreen = cv2.SimpleBlobDetector_Params()
                 paramsgreen.filterByArea = True
-                paramsgreen.minArea= 200  #150
+                paramsgreen.minArea= 180  #250
                 paramsgreen.maxArea= 450
                 paramsgreen.filterByCircularity = True
-                paramsgreen.minCircularity = 0.7
+                paramsgreen.minCircularity = 0.6
                 paramsgreen.maxCircularity = 1
                 paramsgreen.blobColor = 255
 

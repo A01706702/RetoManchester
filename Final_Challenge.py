@@ -14,7 +14,6 @@ import cv2
 import time
 
 
-
 class Robot():
 
 	#This class implements the differential drive model of the robot 
@@ -64,6 +63,7 @@ class AutonomousDriving():
 		self.image_received = 0 #Flag to indicate that we have already received an image 
 		self.first_Ahead = True
 		self.first_Turn = True
+		self.vel_linefollower = 0.15 #0.1
 
 
 
@@ -111,7 +111,7 @@ class AutonomousDriving():
 			### STATE AHEAD ###
 
 			if(self.current_state == "Ahead"):
-				if(self.at_goal(0.20, 0.0)):
+				if(self.at_goal(0.60, 0.0)):
 					self.current_state = "line_follower"
 
 				else:
@@ -122,16 +122,26 @@ class AutonomousDriving():
 
 
 			### STATE TURN RIGHT ###
-
 			if(self.current_state == "Turn right"):
-				if(self.at_goal(0.15, 0.15)):
-					self.current_state = "line_follower"
+				rospy.sleep(1)
+				v_msg.linear.x = 0.13
+				v_msg.angular.z = 0
+				self.pub_cmd_vel.publish(v_msg)
+				rospy.sleep(3)
+				v_msg.linear.x = 0
+				v_msg.angular.z = -0.1
+				self.pub_cmd_vel.publish(v_msg)
+				rospy.sleep(3)
+				v_msg.linear.x = 0.12
+				v_msg.angular.z = 0
+				self.pub_cmd_vel.publish(v_msg)
+				rospy.sleep(3)
+				v_msg.linear.x = 0
+				v_msg.angular.z = 0
+				self.pub_cmd_vel.publish(v_msg)
+				self.current_state = "line_follower"
 
-				else:
-					v,w = self.compute_turn_right()
-					v_msg.linear.x = v
-					v_msg.angular.z = w
-					self.pub_cmd_vel.publish(v_msg)
+
 
 			### STATE STOP ###
 
@@ -151,12 +161,6 @@ class AutonomousDriving():
 					v_msg.linear.x = 0
 					v_msg.angular.z = 0
 					self.pub_cmd_vel.publish(v_msg)
-
-
-
-
-
-
 
 
 			print(self.current_state)
@@ -207,10 +211,10 @@ class AutonomousDriving():
 					#print(error)
 
 					if (error < 50 and error > -50):
-						v = 0.15  ##0.2
+						v = self.vel_linefollower  
 						w = 0
 					else:           
-						v = 0.1 ## 0.1
+						v = 0.1#self.vel_linefollower ## 0.1
 						u= (kp* -float(error)) + (kd* -float(((error-self.error_prev)/dt))) # Variable de control
 						if(u>0.3):
 							u=0.3
@@ -220,13 +224,13 @@ class AutonomousDriving():
 
 					self.error_prev = error
 				else:
-					v = 0.15  ##0.2
-					w = 0
+					v = 0.0  ##0.2
+					w = 0.0
 					print("No line")
 
 			else:
-				v = 0.15
-				w = 0
+				v = 0.0
+				w = 0.0
 					  
 		return v,w
 
@@ -238,7 +242,7 @@ class AutonomousDriving():
 			self.robot.y= 0
 			self.first_Ahead = False
 
-		v = 0.15
+		v = self.vel_linefollower
 		w = 0
 
 		return v,w
@@ -287,6 +291,10 @@ class AutonomousDriving():
 		self.traffic_signal = msg.data
 		if(self.traffic_signal != "Nothing"):
 			self.last_signal = self.traffic_signal
+
+		if(self.traffic_signal == "No Speed limit"):
+			self.vel_linefollower = 0.15
+
 
 	def image_cb(self, ros_image):  
 		## This function receives a ROS image and transforms it into opencv format   

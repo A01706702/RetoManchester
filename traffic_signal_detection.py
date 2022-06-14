@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 
 import rospy  
@@ -75,7 +76,7 @@ class TrafficSignalDetection():
                     areared = 0
 
                     
-                if(areablue > 500.0):  #2500
+                if(areablue > 375.0):  #2500
                     x,y,w,h = cv2.boundingRect(c_blue)
                     #cv2.rectangle(cv_image,(x,y),(x+w,y+h), (255,0,0),2)
                     image_detected = cv_image[y:y+h, x:x+w]
@@ -87,7 +88,7 @@ class TrafficSignalDetection():
 
                 ##### Check if there is a signal red and crop this section 
                 
-                elif(areared > 900.0): #1100
+                elif(areared > 650.0): #1100
                     x,y,w,h = cv2.boundingRect(c_red)
                     #cv2.rectangle(cv_image,(x,y),(x+w,y+h), (255,0,0) ,2)
                     image_detected = cv_image[y+1:y+h-1, x+1:x+w-1]

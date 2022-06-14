@@ -27,7 +27,7 @@ class TrafficSignalRec():
 
 
         #********** INIT NODE **********###  
-        r = rospy.Rate(50) #10Hz  
+        r = rospy.Rate(30) #10Hz  
         while not rospy.is_shutdown():  
             if self.image_received:
                 cv_image = self.cv_image
@@ -41,13 +41,16 @@ class TrafficSignalRec():
                 pred_max = np.argmax(model.predict(X_test), axis=-1)
                 pred = (model.predict(X_test))
                 pred_per = pred[0][pred_max]
-                print(pred)
+                #print(pred)
 
-                          
-                if(pred_per >= 0.90):
-                    if(pred_max == 0):
+                
+                if(pred_max == 0):
+                    if(pred_per >= 0.94):
                         print("Stop")
                         self.pub_traffic_signal.publish("Stop")
+
+
+                elif(pred_per == 1.0):  
                     if(pred_max == 1):
                         print("No Speed limit")
                         self.pub_traffic_signal.publish("No Speed limit")
